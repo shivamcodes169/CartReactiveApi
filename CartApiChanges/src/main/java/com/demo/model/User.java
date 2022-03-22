@@ -9,11 +9,13 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.Data;
 
+
 @Data
 @Document("userInfo")
 public class User {
 	@Id
 	private String id;
+	
 	@Indexed(unique=true)
 	private String uname;
 	List<Product> products=new ArrayList<>();

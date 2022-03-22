@@ -10,11 +10,12 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
+import com.demo.exception.ErrorCode;
+import com.demo.exception.SystemException;
 import com.demo.model.Product;
 import com.demo.model.User;
 import com.demo.repository.CartRepository;
-
-
+import com.demo.repository.ProductRepository;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -25,7 +26,8 @@ public class CartService {
 	@Autowired
 	private CartRepository cartRepo;
 	
-	
+	@Autowired
+	private ProductRepository pRepo;
 	
 	@Autowired
 	private MongoTemplate mongoTemplate;
@@ -34,11 +36,17 @@ public class CartService {
 	//create new user
 	public Mono<User> createUser(User user)
 	{
+		
 		return cartRepo.save(user);
+		
 	}
+	
 	public Flux<User> getALL()
 	{
+		
 		return cartRepo.findAll();
+		
+		
 	}
 			
 
@@ -49,11 +57,18 @@ public class CartService {
 		User u=user.block();
 		List<Product> products=u.getProducts();
 		
+		
+		
 		Query q=new Query();
 		q.addCriteria(Criteria.where("prodname").is(prodname));
 		Product p = mongoTemplate.findOne(q, Product.class);
+			
 		
-		
+				if(p.getQuantity()<newQty)
+				{
+					// add proper reply
+					Mono.error(new RuntimeException("enter valid quantity"));
+				}
 		
 		int flag=0;
 		
@@ -101,6 +116,10 @@ public class CartService {
 			mongoTemplate.findAndModify(q, update, Product.class);
 			
 		}
+		
+		
+		
+		products.removeAll(products);
 		u.setTot_amt(computeTotalAmount( u));
 		return cartRepo.save(u);
 		
@@ -127,7 +146,19 @@ public class CartService {
 	 
 	public Mono<User> getbyName(String name) {
 		
-		return cartRepo.findByName(name);
+		return cartRepo.findByName(name)
+				.hasElement()
+				.flatMap((exist)->{
+					if (Boolean.FALSE.equals(exist)){
+                        return Mono.error(
+                                SystemException.builder()
+                                        .errorCode(ErrorCode.USER_NOT_FOUND)
+                                        .message("user not found")
+                                        .build()
+                        );
+					}
+					return cartRepo.findByName(name);
+					});
 	}
 	
 	public Mono<User> deleteIt(String name, String prodname) {
