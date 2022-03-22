@@ -1,5 +1,7 @@
 package com.demo.controller;
 
+import javax.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,18 +26,18 @@ public class CartController {
 	private CartService cartService;
 	
 	@PostMapping("/")
-	public Mono<User> createUser(@RequestBody User user)
+	public Mono<User> createUser(@Valid @RequestBody User user)
 	{
 		return cartService.createUser(user);
 	}
 	@GetMapping("/{name}")
-	public Mono<User> getall(@PathVariable String name)
+	public Mono<User> getall( @PathVariable String name)
 	{
 		return cartService.getbyName(name);
 	}
 	
 	@PutMapping("/addproduct/{name}/{prodname}")
-	public  Mono<User> addOneProductToCart(@PathVariable String name,@PathVariable String prodname)
+	public  Mono<User> addOneProductToCart( @PathVariable String name,@PathVariable String prodname)
 	{
 		return cartService.addProductToCart(name, prodname,1);
 	}

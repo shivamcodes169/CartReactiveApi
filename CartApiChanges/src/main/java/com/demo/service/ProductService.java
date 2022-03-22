@@ -2,12 +2,17 @@ package com.demo.service;
 
 
 
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
+import com.demo.exception.ErrorCode;
+import com.demo.exception.SystemException;
 import com.demo.model.Product;
 import com.demo.repository.ProductRepository;
 
@@ -22,8 +27,9 @@ public class ProductService {
 	private MongoTemplate mongoTemplate;
 	
 	//product save
-	public Mono<Product> saveProduct(Product prod)
+	public Mono<Product> saveProduct( Product prod)
 	{
+		
 		return productRepo.save(prod);
 	}
 	
@@ -40,7 +46,7 @@ public class ProductService {
 	}
 	
 	//to update product
-	public Mono<Product> updateProduct(String prodname,int qty,double price)
+	public Mono<Product> updateProduct(String prodname,Integer qty,Double price)
 	{
 		Mono<Product> product=productRepo.findByName(prodname);
 		Product p=product.block();

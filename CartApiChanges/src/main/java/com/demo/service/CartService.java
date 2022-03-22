@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
@@ -33,6 +34,8 @@ public class CartService {
 	private MongoTemplate mongoTemplate;
 	
 	
+	
+	
 	//create new user
 	public Mono<User> createUser(User user)
 	{
@@ -53,50 +56,78 @@ public class CartService {
 	
 	public Mono<User> addProductToCart(String uname,String prodname,int newQty)
 	{
+		
 		Mono<User> user=cartRepo.findByName(uname);
-		User u=user.block();
-		List<Product> products=u.getProducts();
 		
-		
-		
-		Query q=new Query();
-		q.addCriteria(Criteria.where("prodname").is(prodname));
-		Product p = mongoTemplate.findOne(q, Product.class);
-			
-		
-				if(p.getQuantity()<newQty)
-				{
-					// add proper reply
-					Mono.error(new RuntimeException("enter valid quantity"));
-				}
-		
-		int flag=0;
-		
-		for(Product i:products)
-		{
-			if(i.getProdname().equals(prodname))
-			{
-				i.setQuantity(newQty);
+		 return user.hasElement()
+				.flatMap(exist->{
+					if (Boolean.FALSE.equals(exist))
+					{
+						return Mono.error(SystemException.builder().errorCode(ErrorCode.ENTITY_NOT_FOUND)
+								.message("user not exist").build());
+					}
+					
+					Mono<Product> pr=pRepo.findByName(prodname);
+					return pr.hasElement()
+					.flatMap(exists->{
+					if (Boolean.FALSE.equals(exists))
+					{
+						return Mono.error(SystemException.builder().errorCode(ErrorCode.ENTITY_NOT_FOUND)
+								.message("product not exist").build());
+					}
+						return user.flatMap(u->{
+						
+						List<Product> products=u.getProducts();
+						
+						
+						
+						Query q=new Query();
+						q.addCriteria(Criteria.where("prodname").is(prodname));
+						Product p = mongoTemplate.findOne(q, Product.class);
+							
+						
+								if(p.getQuantity()<newQty)
+								{
+									// add proper reply
+									return Mono.error(SystemException.builder().errorCode(ErrorCode.ATTRIBUTE_UPDATE_CONFLICT_1)
+											.message("quantity exceeds avaible quantity").build());
+								}
+						
+						int flag=0;
+						
+						for(Product i:products)
+						{
+							if(i.getProdname().equals(prodname))
+							{
+								i.setQuantity(newQty);
+								
+								flag=1;
+								break;
+								
+							}
+							
+						}
+						
+						if(flag==0)
+						{
+						p.setQuantity(newQty);
+						products.add(p);
+						
+						}
+						
+						
+						u.setTot_amt(computeTotalAmount( u));
+						System.out.println(u);
+						 return cartRepo.save(u);
+						 
+
+					});
+					});
+					
+					
 				
-				flag=1;
-				break;
-				
-			}
-			
-		}
-		
-		if(flag==0)
-		{
-		p.setQuantity(newQty);
-		products.add(p);
-		
-		}
-		
-		
-		u.setTot_amt(computeTotalAmount( u));
-		return cartRepo.save(u);
-		
-		
+				});	
+		 
 		
 	}
 	
@@ -104,24 +135,35 @@ public class CartService {
 	public Mono<User> checkOutNow(String name) {
 		
 		Mono<User> user=cartRepo.findByName(name);
-		User u=user.block();
-		List<Product> products=u.getProducts();
-		for(Product p:products)
-		{
-			Query q=new Query();
-			q.addCriteria(Criteria.where("prodname").is(p.getProdname()));
-			Product prod = mongoTemplate.findOne(q, Product.class);
-			Update update=new Update();
-			update.set("quantity",prod.getQuantity()-p.getQuantity() );
-			mongoTemplate.findAndModify(q, update, Product.class);
-			
-		}
+		return user.hasElement()
+		.flatMap(exist->{
+			if (Boolean.FALSE.equals(exist))
+			{
+				return Mono.error(SystemException.builder().errorCode(ErrorCode.ENTITY_NOT_FOUND)
+						.message("user not exist").build());
+			}
+			return user.flatMap(u->{
+				List<Product> products=u.getProducts();
+				for(Product p:products)
+				{
+					Query q=new Query();
+					q.addCriteria(Criteria.where("prodname").is(p.getProdname()));
+					Product prod = mongoTemplate.findOne(q, Product.class);
+					Update update=new Update();
+					update.set("quantity",prod.getQuantity()-p.getQuantity() );
+					mongoTemplate.findAndModify(q, update, Product.class);
+					
+				}
+				
+				
+				
+				products.removeAll(products);
+				u.setTot_amt(computeTotalAmount( u));
+				return cartRepo.save(u);
+			});
+		});
 		
 		
-		
-		products.removeAll(products);
-		u.setTot_amt(computeTotalAmount( u));
-		return cartRepo.save(u);
 		
 		
 	}
@@ -152,7 +194,7 @@ public class CartService {
 					if (Boolean.FALSE.equals(exist)){
                         return Mono.error(
                                 SystemException.builder()
-                                        .errorCode(ErrorCode.USER_NOT_FOUND)
+                                        .errorCode(ErrorCode.ATTRIBUTE_NOT_FOUND)
                                         .message("user not found")
                                         .build()
                         );
@@ -163,24 +205,51 @@ public class CartService {
 	
 	public Mono<User> deleteIt(String name, String prodname) {
 		 Mono<User> cart=cartRepo.findByName(name);
-		   User c= cart.block();
-			List<Product>products=c.getProducts();
-			for(Product p:products)
-			{
-				if (p.getProdname().equals(prodname)) {
-	                products.remove(p);
-	                break;
-	                
-	             }
-			}
+		 return cart.hasElement()
+				 .flatMap(exist->{
+					 if (Boolean.FALSE.equals(exist)){
+	                        return Mono.error(
+	                                SystemException.builder()
+	                                        .errorCode(ErrorCode.ATTRIBUTE_NOT_FOUND)
+	                                        .message("user not found")
+	                                        .build()
+	                        );
+						}
+					 
+					 Mono<Product> pr=pRepo.findByName(prodname);
+						return pr.hasElement()
+								.flatMap(exists->{
+									if (Boolean.FALSE.equals(exists))
+									{
+										return Mono.error(SystemException.builder().errorCode(ErrorCode.ENTITY_NOT_FOUND)
+												.message("product not exist").build());
+									}
+									return cart.flatMap(c->{
+										List<Product>products=c.getProducts();
+										for(Product p:products)
+										{
+											if (p.getProdname().equals(prodname)) {
+								                products.remove(p);
+								                break;
+								                
+								             }
+										}
+										
+										c.setProducts(products);
+										
+										//set new tot_amt    
+									    c.setTot_amt(computeTotalAmount( c));
+										
+									    
+										return cartRepo.save(c);
+										
+									});
+								});
+					
+					
+				 });
+		  
 			
-			c.setProducts(products);
-			
-			//set new tot_amt    
-		    c.setTot_amt(computeTotalAmount( c));
-			
-		    
-			return cartRepo.save(c);
 	}
 	
 

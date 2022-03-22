@@ -1,5 +1,7 @@
 package com.demo.controller;
 
+import javax.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,7 +26,7 @@ public class ProductController {
 	private ProductService prodService;
 	
 	@PostMapping("/")
-	public Mono<Product> addProduct(@RequestBody Product product)
+	public Mono<Product> addProduct(@Valid @RequestBody Product product)
 	{
 		return prodService.saveProduct(product);
 	}
@@ -35,17 +37,17 @@ public class ProductController {
 	}
 	
 	@GetMapping("/getbyname/{name}")
-	public Mono<Product> getByname(@PathVariable String name)
+	public Mono<Product> getByname(@Valid @PathVariable String name)
 	{
 		return  prodService.findByName(name);
 	}
 	@PutMapping("/{prodname}/{qty}/{price}")
-	public Mono<Product> updateProd(@PathVariable String prodname,@PathVariable int qty,@PathVariable double price)
+	public Mono<Product> updateProd(@Valid @PathVariable String prodname,@Valid @PathVariable Integer qty,@Valid @PathVariable Double price)
 	{
 		return prodService.updateProduct(prodname, qty, price);
 	}
 	@DeleteMapping("/{prodname}")
-	public String deleteProd(@PathVariable String prodname)
+	public String deleteProd(@Valid @PathVariable String prodname)
 	{
 		prodService.deleteProduct(prodname);
 		return prodname+"deleted";

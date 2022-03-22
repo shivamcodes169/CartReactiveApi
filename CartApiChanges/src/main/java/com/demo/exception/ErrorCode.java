@@ -9,13 +9,20 @@ import static org.springframework.http.HttpStatus.*;
 @Getter
 @AllArgsConstructor
 public enum ErrorCode {
-	 CANNOT_BE_NULL(INTERNAL_SERVER_ERROR, "System error"),
-	 PRODUCT_VALIDATION_ERROR(BAD_REQUEST, "Validation error"),
-	 ATTRIBUTE_NAME_ALREADY_EXISTS(CONFLICT,"attribute name already exists"),
-	 PRODUCTS_MEDIA_TYPE_NOT_SUPPORTED(UNSUPPORTED_MEDIA_TYPE, "Media type not supported"),
-	 ATTRIBUTE_NOT_FOUND(INTERNAL_SERVER_ERROR,"System error"),
-	 USER_NOT_FOUND(BAD_REQUEST,"user not exist");
-	 
-	 private final HttpStatus httpStatus;
+	PRODUCT_NOT_FOUND(INTERNAL_SERVER_ERROR, "System error"),
+	
+    CANNOT_BE_NULL(INTERNAL_SERVER_ERROR, "System error"),
+    PRODUCT_VALIDATION_ERROR(BAD_REQUEST, "Validation error"),
+    ENTITY_NOT_FOUND(NOT_FOUND, "Entity not found"),
+    IMAGE_CONFLICT(CONFLICT, "Image already exists"),
+    ATTRIBUTE_NAME_ALREADY_EXISTS(CONFLICT,"attribute name already exists"),
+    ATTRIBUTE_NOT_FOUND(INTERNAL_SERVER_ERROR,"System error"),
+    ATTRIBUTE_CONFLICT(CONFLICT,"attribute already exists"),
+    ATTRIBUTE_UPDATE_CONFLICT(CONFLICT,"updated attribute by same values"),
+    ATTRIBUTE_UPDATE_CONFLICT_1(CONFLICT,"entered quantity exceeds quantity available"),
+    PRODUCTS_INTERNAL_ERROR(INTERNAL_SERVER_ERROR, "Operation failed because of an internal network error"),
+    PRODUCTS_DOWNSTREAM_SERVICE_TIMEOUT_ERROR(SERVICE_UNAVAILABLE, "Downstream product Service timed out attempting operation"),
+    PRODUCTS_MEDIA_TYPE_NOT_SUPPORTED(UNSUPPORTED_MEDIA_TYPE, "Media type not supported");
+    private final HttpStatus httpStatus;
     private final String message;
 }
